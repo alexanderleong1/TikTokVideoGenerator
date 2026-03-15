@@ -1,0 +1,36 @@
+{
+  "name": "tiktok-video-generator",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "scheduler": "ts-node -r dotenv/config -P tsconfig.json jobs/scheduler.ts",
+    "generate": "ts-node -r dotenv/config -P tsconfig.json scripts/generate-video.ts",
+    "generate:dry": "SKIP_UPLOAD=true ts-node -r dotenv/config -P tsconfig.json scripts/generate-video.ts",
+    "remotion:preview": "remotion preview remotion/index.ts",
+    "remotion:render": "remotion render remotion/index.ts TikTokVideo",
+    "setup:db": "ts-node -r dotenv/config -P tsconfig.json scripts/setup-db.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@remotion/bundler": "^4.0.190",
+    "@remotion/cli": "^4.0.190",
+    "@remotion/renderer": "^4.0.190",
+    "@supabase/supabase-js": "^2.45.4",
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "node-cron": "^3.0.3",
+    "remotion": "^4.0.190",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/node-cron": "^3.0.11",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@types/uuid": "^10.0.0",
+    "react": "^18",
+    "react-dom": "^18",
+    "ts-node": "^10.9.2",
+    "typescript": "^5"
+  }
+}
