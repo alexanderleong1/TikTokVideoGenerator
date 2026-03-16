@@ -53,8 +53,8 @@ async function fetchFromPexels(query: string): Promise<StockVideo | null> {
       headers: { Authorization: apiKey },
       params: {
         query,
-        per_page: 10,
-        orientation: 'portrait', // vertical = portrait
+        per_page: 20,
+        orientation: 'portrait',
         size: 'medium',
       },
       timeout: 15_000,
@@ -154,8 +154,9 @@ function topicToSearchQuery(topic: string): string {
     .split(/\s+/)
     .filter((w) => w.length > 2 && !stopWords.has(w));
 
-  // Take up to 3 keywords for a focused search
-  return words.slice(0, 3).join(' ') || 'nature landscape';
+  // Take up to 3 keywords, then exclude faces/people
+  const keywords = words.slice(0, 3).join(' ') || 'nature landscape';
+  return `${keywords} no people`;
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────

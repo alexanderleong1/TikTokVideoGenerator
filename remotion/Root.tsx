@@ -34,6 +34,10 @@ export const Root: React.FC = () => {
         width={1080}
         height={1920}
         defaultProps={PREVIEW_PROPS}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: props.durationInFrames as number,
+          fps: props.fps as number,
+        })}
       />
     </>
   );

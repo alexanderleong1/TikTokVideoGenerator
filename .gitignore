@@ -16,12 +16,16 @@ dist/
 .env.test.local
 .env.production.local
 
+# Script
+script.json
+
 # Generated media (temporary files)
 /tmp/
 /public/generated/
 
 # Remotion render output
 /out/
+/output/
 
 # OS
 .DS_Store

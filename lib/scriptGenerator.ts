@@ -34,7 +34,7 @@ export function getPrompt(topic: string): string {
 
 Requirements:
 - hook: ≤15 words, punchy, grabs attention in the first 3 seconds
-- script: 60–90 words total (20–40 seconds of narration at 130 wpm)
+- script: as long as the topic needs — cover it fully and engagingly
 - captions: 5 short segments of 5–10 words each, matching script flow
 - End with a clear CTA (like, follow, comment)
 - Tone: energetic, conversational, direct

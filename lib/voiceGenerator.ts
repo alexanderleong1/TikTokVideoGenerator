@@ -44,7 +44,7 @@ export async function generateVoice(script: string): Promise<VoiceGenerationResu
   const result = spawnSync(
     'python3',
     [ttsScript, voice, audioPath, script],
-    { timeout: 60_000, encoding: 'utf-8' },
+    { timeout: 300_000, encoding: 'utf-8' },
   );
 
   if (result.error) throw result.error;

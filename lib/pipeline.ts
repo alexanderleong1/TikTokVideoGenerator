@@ -79,7 +79,7 @@ export async function generateTikTokVideo(
       wordTimings: voice.wordTimings,
       audioPath: voice.audioPath,
       backgroundVideoUrl: stockVideo.url,
-      durationSeconds: voice.durationSeconds ?? 30,
+      durationSeconds: voice.durationSeconds,
     });
     renderedVideoPath = rendered.videoPath;
 
