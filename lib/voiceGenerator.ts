@@ -36,6 +36,7 @@ export interface VoiceGenerationResult {
 
 export async function generateVoice(script: string): Promise<VoiceGenerationResult> {
   const voice = process.env.EDGE_TTS_VOICE ?? 'en-US-AriaNeural';
+  const rate = process.env.EDGE_TTS_RATE ?? '+30%';
   const audioPath = tmpFilePath('mp3');
   const ttsScript = path.resolve(process.cwd(), 'scripts/tts.py');
 
@@ -43,7 +44,7 @@ export async function generateVoice(script: string): Promise<VoiceGenerationResu
 
   const result = spawnSync(
     'python3',
-    [ttsScript, voice, audioPath, script],
+    [ttsScript, voice, audioPath, script, rate],
     { timeout: 300_000, encoding: 'utf-8' },
   );
 

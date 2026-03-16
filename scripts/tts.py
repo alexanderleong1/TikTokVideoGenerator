@@ -19,8 +19,9 @@ async def main() -> None:
     voice = sys.argv[1]
     audio_path = sys.argv[2]
     text = sys.argv[3]
+    rate = sys.argv[4] if len(sys.argv) > 4 else "+0%"
 
-    communicate = edge_tts.Communicate(text, voice=voice, boundary="WordBoundary")
+    communicate = edge_tts.Communicate(text, voice=voice, rate=rate, boundary="WordBoundary")
     word_timings: list[dict] = []
 
     with open(audio_path, "wb") as f:
