@@ -15,13 +15,7 @@ import { TikTokVideoComposition, TikTokVideoProps } from './TikTokVideo';
 const PREVIEW_PROPS: TikTokVideoProps = {
   topic: 'The shocking truth about sleep',
   hook: 'You\'ve been sleeping WRONG your entire life...',
-  captions: [
-    'Most people ignore sleep science',
-    'Your body repairs itself at night',
-    'Deep sleep = better focus & mood',
-    'Try this tonight for better rest',
-    'Like & follow for more life hacks!',
-  ],
+  wordTimings: [],
   audioPath: '',
   backgroundVideoUrl:
     'https://videos.pexels.com/video-files/856543/856543-hd_1080_1920_24fps.mp4',

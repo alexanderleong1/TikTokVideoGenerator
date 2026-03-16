@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { AbsoluteFill, OffthreadVideo, staticFile } from 'remotion';
+import { AbsoluteFill, Loop, OffthreadVideo } from 'remotion';
 
 interface BackgroundVideoProps {
   src: string; // URL or staticFile path to the stock footage
@@ -16,16 +16,18 @@ interface BackgroundVideoProps {
 export const BackgroundVideo: React.FC<BackgroundVideoProps> = ({ src }) => {
   return (
     <AbsoluteFill>
-      <OffthreadVideo
-        src={src}
-        style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-        }}
-        // Mute the stock footage — we overlay our own narration
-        muted
-      />
+      {/* Loop the stock clip so it covers the full audio duration */}
+      <Loop durationInFrames={300}>
+        <OffthreadVideo
+          src={src}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+          }}
+          muted
+        />
+      </Loop>
       {/* Dark gradient overlay to ensure text readability */}
       <AbsoluteFill
         style={{

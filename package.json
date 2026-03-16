@@ -16,11 +16,14 @@
     "@remotion/cli": "^4.0.190",
     "@remotion/renderer": "^4.0.190",
     "@supabase/supabase-js": "^2.45.4",
+    "@types/ws": "^8.18.1",
     "axios": "^1.7.7",
     "dotenv": "^16.4.5",
+    "edge-tts": "^1.0.1",
     "node-cron": "^3.0.3",
     "remotion": "^4.0.190",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "ws": "^8.19.0"
   },
   "devDependencies": {
     "@types/node": "^20",

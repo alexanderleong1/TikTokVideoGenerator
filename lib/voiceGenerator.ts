@@ -1,93 +1,70 @@
 /**
  * voiceGenerator.ts
  *
- * Converts text to an MP3 voice narration using the ElevenLabs API.
+ * Free Microsoft Edge TTS via a Python helper script that uses the edge-tts
+ * package's streaming API with WordBoundary events for per-word timing.
  *
- * The generated audio file is saved to the tmp directory and its path is
- * returned. The caller is responsible for cleaning it up after rendering.
+ * Requires: pip3 install edge-tts
  *
- * Docs: https://elevenlabs.io/docs/api-reference/text-to-speech
+ * Popular voices (set EDGE_TTS_VOICE in .env):
+ *   en-US-AriaNeural   — warm, conversational female (default)
+ *   en-US-GuyNeural    — energetic male
+ *   en-US-JennyNeural  — friendly female
+ *   en-GB-SoniaNeural  — British female
  */
 
-import fs from 'fs';
-import axios from 'axios';
-import { logger } from '@/utils/logger';
-import { tmpFilePath, retry } from '@/utils/helpers';
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const ELEVENLABS_BASE = 'https://api.elevenlabs.io/v1';
-
-// Default voice: "Rachel" – natural, clear American English
-const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
+import path from 'path';
+import { spawnSync } from 'child_process';
+import { tmpFilePath } from '../utils/helpers';
+import { logger } from '../utils/logger';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export interface WordTiming {
+  word: string;
+  startMs: number;
+  endMs: number;
+}
+
 export interface VoiceGenerationResult {
-  audioPath: string;    // absolute path to the saved MP3
-  durationSeconds: number | null; // estimated from word count; exact after FFprobe
+  audioPath: string;
+  durationSeconds: number;
+  wordTimings: WordTiming[];
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Public API ───────────────────────────────────────────────────────────────
 
-/** Rough estimate: average English speaking pace ≈ 130 words per minute */
-function estimateDuration(text: string): number {
-  const wordCount = text.trim().split(/\s+/).length;
-  return Math.round((wordCount / 130) * 60);
-}
-
-// ─── Main function ────────────────────────────────────────────────────────────
-
-/**
- * generateVoice
- *
- * Calls ElevenLabs TTS and saves the MP3 to disk.
- * Returns the file path and an estimated duration in seconds.
- */
 export async function generateVoice(script: string): Promise<VoiceGenerationResult> {
-  const apiKey = process.env.ELEVENLABS_API_KEY;
-  if (!apiKey) throw new Error('ELEVENLABS_API_KEY is not set.');
+  const voice = process.env.EDGE_TTS_VOICE ?? 'en-US-AriaNeural';
+  const audioPath = tmpFilePath('mp3');
+  const ttsScript = path.resolve(process.cwd(), 'scripts/tts.py');
 
-  const voiceId = process.env.ELEVENLABS_VOICE_ID ?? DEFAULT_VOICE_ID;
-  const outputPath = tmpFilePath('mp3');
+  logger.info('Generating voice via edge-tts (Python)', { voice });
 
-  logger.info('Generating voice narration', { voiceId, charCount: script.length });
+  const result = spawnSync(
+    'python3',
+    [ttsScript, voice, audioPath, script],
+    { timeout: 60_000, encoding: 'utf-8' },
+  );
 
-  const doRequest = async () => {
-    const response = await axios.post(
-      `${ELEVENLABS_BASE}/text-to-speech/${voiceId}`,
-      {
-        text: script,
-        model_id: 'eleven_turbo_v2',          // fast + high quality
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-          style: 0.3,
-          use_speaker_boost: true,
-        },
-      },
-      {
-        headers: {
-          'xi-api-key': apiKey,
-          'Content-Type': 'application/json',
-          Accept: 'audio/mpeg',
-        },
-        responseType: 'arraybuffer',
-        timeout: 60_000,
-      },
-    );
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`edge-tts failed (exit ${result.status}): ${result.stderr}`);
+  }
 
-    return response.data as ArrayBuffer;
-  };
+  // stdout contains JSON array of word timings
+  let wordTimings: WordTiming[] = [];
+  try {
+    wordTimings = JSON.parse(result.stdout.trim());
+  } catch {
+    logger.warn('Could not parse word timings from tts.py output');
+  }
 
-  const audioData = await retry(doRequest, 3, 2000);
+  const durationSeconds = wordTimings.length > 0
+    ? Math.ceil(wordTimings[wordTimings.length - 1].endMs / 1000) + 1
+    : Math.round((script.trim().split(/\s+/).length / 130) * 60);
 
-  // Write the binary audio data to a temp file
-  fs.writeFileSync(outputPath, Buffer.from(audioData));
+  logger.info('Voice narration saved', { audioPath, words: wordTimings.length, durationSeconds });
 
-  const durationSeconds = estimateDuration(script);
-
-  logger.info('Voice narration saved', { outputPath, estimatedDuration: durationSeconds });
-
-  return { audioPath: outputPath, durationSeconds };
+  return { audioPath, durationSeconds, wordTimings };
 }

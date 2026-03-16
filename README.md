@@ -87,13 +87,40 @@ npm run scheduler
 | `SCHEDULER_TZ` | | Cron timezone (default: `America/New_York`) |
 | `TMP_DIR` | | Scratch files dir (default: `/tmp/tiktok-generator`) |
 
+## Script Generation — Manual Mode (no API key needed)
+
+If you don't have an Anthropic API key, generate the script manually using Claude chat:
+
+```bash
+# 1. Run with no SCRIPT_FILE set — the pipeline prints the prompt and exits
+npm run generate
+
+# 2. Copy the printed prompt into Claude chat (claude.ai or desktop app)
+
+# 3. Save Claude's JSON response to script.json
+
+# 4. Re-run pointing at your file
+SCRIPT_FILE=script.json npm run generate
+SCRIPT_FILE=script.json SKIP_UPLOAD=true npm run generate   # render only
+```
+
+The expected JSON format from Claude:
+```json
+{
+  "topic": "Why cold showers work",
+  "hook": "You've been showering wrong your entire life...",
+  "script": "Full narration text here, 60–90 words...",
+  "captions": ["seg1", "seg2", "seg3", "seg4", "seg5"]
+}
+```
+
 ## One-off Commands
 
 ```bash
-# Custom topic
+# Custom topic (API mode)
 TOPIC="Why cold showers change your brain" npm run generate
 
-# Skip upload (render test)
+# Skip upload (render only)
 SKIP_UPLOAD=true npm run generate
 
 # Preview Remotion composition locally

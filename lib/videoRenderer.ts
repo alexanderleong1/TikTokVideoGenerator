@@ -14,11 +14,13 @@
  * Docs: https://www.remotion.dev/docs/renderer
  */
 
+import { mkdirSync, copyFileSync, unlinkSync } from 'fs';
 import path from 'path';
 import { bundle } from '@remotion/bundler';
 import { renderMedia, selectComposition } from '@remotion/renderer';
-import { logger } from '@/utils/logger';
-import { tmpFilePath, secondsToFrames } from '@/utils/helpers';
+import { logger } from '../utils/logger';
+import { secondsToFrames } from '../utils/helpers';
+import type { WordTiming } from './voiceGenerator';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,7 +28,7 @@ export interface RenderInput {
   topic: string;
   hook: string;
   script: string;
-  captions: string[];
+  wordTimings: WordTiming[];
   audioPath: string;           // path to the MP3 narration
   backgroundVideoUrl: string;  // direct URL of the stock footage
   durationSeconds: number;     // total video duration
@@ -50,42 +52,57 @@ export async function renderVideo(input: RenderInput): Promise<RenderResult> {
     durationSeconds: input.durationSeconds,
   });
 
-  const outputPath = tmpFilePath('mp4');
+  // Save to ./output/ so it's easy to find and open locally
+  const outputDir = path.resolve(process.cwd(), 'output');
+  mkdirSync(outputDir, { recursive: true });
+  const slug = input.topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
+  const outputPath = path.join(outputDir, `${slug}-${Date.now()}.mp4`);
   const fps = 30;
   const durationInFrames = secondsToFrames(input.durationSeconds, fps);
 
+  const audioFilename = `audio-${Date.now()}.mp3`;
+
   // 1. Bundle the Remotion entry file
-  //    The entry file exports all compositions via <Composition> components.
   const compositionRoot = path.resolve(process.cwd(), 'remotion/index.ts');
 
   logger.info('Bundling Remotion composition...');
   const bundled = await bundle({
     entryPoint: compositionRoot,
-    // Pass env variables so the Remotion composition can access them if needed
     webpackOverride: (config) => config,
   });
 
-  // 2. Select the composition we want to render
-  const composition = await selectComposition({
-    serveUrl: bundled,
-    id: 'TikTokVideo',
-    inputProps: buildInputProps(input, durationInFrames, fps),
-  });
+  // Remotion's HTTP server serves files from the bundle temp dir.
+  // Copy audio there so Chrome can fetch it at /audio-<ts>.mp3.
+  const bundleAudioPath = path.join(bundled, audioFilename);
+  copyFileSync(input.audioPath, bundleAudioPath);
 
-  // 3. Render to MP4
-  logger.info('Rendering video frames...', { frames: durationInFrames });
-  await renderMedia({
-    composition,
-    serveUrl: bundled,
-    codec: 'h264',
-    outputLocation: outputPath,
-    inputProps: buildInputProps(input, durationInFrames, fps),
-    // 1080×1920 portrait
-    chromiumOptions: { disableWebSecurity: true },
-    onProgress: ({ progress }) => {
-      logger.debug('Render progress', { progress: `${Math.round(progress * 100)}%` });
-    },
-  });
+  try {
+    const props = buildInputProps(input, audioFilename, durationInFrames, fps);
+
+    // 2. Select the composition we want to render
+    const composition = await selectComposition({
+      serveUrl: bundled,
+      id: 'TikTokVideo',
+      inputProps: props,
+    });
+
+    // 3. Render to MP4
+    logger.info('Rendering video frames...', { frames: durationInFrames });
+    await renderMedia({
+      composition,
+      serveUrl: bundled,
+      codec: 'h264',
+      outputLocation: outputPath,
+      inputProps: props,
+      chromiumOptions: { disableWebSecurity: true },
+      onProgress: ({ progress }) => {
+        logger.debug('Render progress', { progress: `${Math.round(progress * 100)}%` });
+      },
+    });
+  } finally {
+    // Clean up the copied audio from the bundle dir
+    try { unlinkSync(bundleAudioPath); } catch { /* ignore */ }
+  }
 
   logger.info('Video render complete', { outputPath });
   return { videoPath: outputPath };
@@ -99,14 +116,15 @@ export async function renderVideo(input: RenderInput): Promise<RenderResult> {
  */
 function buildInputProps(
   input: RenderInput,
+  audioFilename: string,
   durationInFrames: number,
   fps: number,
 ): Record<string, unknown> {
   return {
     topic: input.topic,
     hook: input.hook,
-    captions: input.captions,
-    audioPath: input.audioPath,
+    wordTimings: input.wordTimings,
+    audioPath: audioFilename,
     backgroundVideoUrl: input.backgroundVideoUrl,
     durationInFrames,
     fps,
